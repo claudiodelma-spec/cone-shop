@@ -28,24 +28,21 @@
         </div>
         <div>
           <h1 class="font-bold text-lg leading-tight text-gray-900">Mi Tienda Online</h1>
-          <p class="text-xs text-gray-500">Réplica Cone Shop</p>
+          <p class="text-xs text-gray-500">Réplica Cone Shop (Sincronizado)</p>
         </div>
       </div>
 
       <div class="flex items-center space-x-3">
-        <!-- BOTÓN HOME -->
         <button onclick="goHome()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1">
           <i class="fa-solid fa-house text-xs"></i>
           <span>Inicio</span>
         </button>
 
-        <!-- CARRITO -->
         <button onclick="openCartModal()" class="relative p-2 text-gray-600 hover:text-brand transition">
           <i class="fa-solid fa-cart-shopping text-2xl"></i>
           <span id="cartCount" class="absolute -top-1 -right-1 bg-brand text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
         </button>
 
-        <!-- ADMIN -->
         <button id="adminToggleBtn" onclick="toggleAdminModal()" class="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition flex items-center space-x-1">
           <i class="fa-solid fa-lock text-xs"></i>
           <span id="adminBtnText">Acceso Admin</span>
@@ -56,19 +53,19 @@
 
   <!-- BANNER ADMIN -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo visibles solo para ti.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMIN ACTIVO — Mostrando precio costo y comisión.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    <!-- BARRA DE BÚSQUEDA -->
+    <!-- BARRA DE BÚSQUEDA Y SINCRONIZACIÓN -->
     <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative w-full md:w-96">
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estás buscando? (Nombre o SKU)..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
       </div>
 
-      <button onclick="loadCatalog()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
+      <button onclick="syncLive()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
         <i class="fa-solid fa-rotate"></i>
         <span>Sincronizar On-Time</span>
       </button>
@@ -83,11 +80,11 @@
       <button onclick="filterCategory('Hogar')" class="cat-btn bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border shadow-sm transition whitespace-nowrap">Hogar y Decoración</button>
     </div>
 
-    <!-- RECIPIENTE DE PRODUCTOS -->
+    <!-- GRID DE PRODUCTOS -->
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Cargando catálogo...</p>
+        <p>Conectando con armamipedido.mx...</p>
       </div>
     </div>
   </main>
@@ -133,7 +130,7 @@
       </div>
 
       <div id="adminLoginForm" class="space-y-4">
-        <input type="password" id="adminPassword" placeholder="Contraseña de Admin (admin123)" class="w-full border rounded-lg p-2.5 text-sm">
+        <input type="password" id="adminPassword" placeholder="Contraseña (admin123)" class="w-full border rounded-lg p-2.5 text-sm">
         <button onclick="loginAdmin()" class="w-full bg-gray-900 text-white font-bold py-2.5 rounded-lg hover:bg-gray-800 transition">Entrar</button>
       </div>
 
@@ -168,8 +165,19 @@
         products = await res.json();
         applyFilters();
       } catch (e) {
-        console.error("Error cargando productos");
+        console.error("Error al cargar los productos");
       }
+    }
+
+    function syncLive() {
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = `
+        <div class="col-span-full text-center py-12 text-gray-500">
+          <i class="fa-solid fa-rotate fa-spin text-3xl text-brand mb-3"></i>
+          <p>Sincronizando catálogo en vivo...</p>
+        </div>
+      `;
+      loadCatalog();
     }
 
     function goHome() {
@@ -220,7 +228,7 @@
         grid.innerHTML = `
           <div class="col-span-full text-center py-12 text-gray-400">
             <i class="fa-solid fa-magnifying-glass text-3xl mb-2"></i>
-            <p>No se encontraron productos en esta sección.</p>
+            <p>No se encontraron productos coincidentes.</p>
           </div>
         `;
         return;
@@ -231,10 +239,16 @@
         const card = document.createElement('div');
         card.className = "bg-white rounded-2xl shadow-sm border p-4 flex flex-col justify-between hover:shadow-md transition";
         
+        // Corregir formato de protocolo en imágenes
+        let imgSrc = p.image || 'https://via.placeholder.com/300?text=Cone+Shop';
+        if (imgSrc.startsWith('//')) {
+          imgSrc = 'https:' + imgSrc;
+        }
+
         card.innerHTML = `
           <div>
             <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" referrerpolicy="no-referrer" class="object-contain h-full w-full">
+              <img src="${imgSrc}" alt="${p.title}" referrerpolicy="no-referrer" class="object-contain h-full w-full" onerror="this.onerror=null; this.src='https://via.placeholder.com/300?text=Sin+Imagen'">
             </div>
             <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
             <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
@@ -301,7 +315,7 @@
     function sendOrderWhatsApp() {
       const name = document.getElementById('clientName').value || 'Cliente';
       const address = document.getElementById('clientAddress').value || 'No especificada';
-      let msg = `*NUEVO PEDIDO*\n*Cliente:* ${name}\n*Dirección:* ${address}\n\n*PRODUCTOS:*\n`;
+      let msg = `*NUEVO PEDIDO DE COMPRA*\n*Cliente:* ${name}\n*Dirección:* ${address}\n\n*PRODUCTOS:*\n`;
       let total = 0;
 
       Object.keys(cart).forEach(sku => {
@@ -313,7 +327,7 @@
         }
       });
 
-      msg += `\n*TOTAL:* $${total.toFixed(2)}`;
+      msg += `\n*TOTAL A PAGAR:* $${total.toFixed(2)}`;
       window.open(`https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(msg)}`, '_blank');
     }
 
@@ -341,6 +355,7 @@
       const margin = parseFloat(document.getElementById('globalMargin').value) || 0;
       products.forEach(p => p.sellPrice = p.costPrice * (1 + margin / 100));
       renderProducts();
+      alert(`Se aplicó un ${margin}% de ganancia a todos los productos.`);
     }
 
     window.onload = loadCatalog;
