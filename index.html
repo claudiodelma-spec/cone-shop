@@ -22,7 +22,7 @@
   <!-- ENCABEZADO -->
   <header class="bg-white shadow-md sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-      <div class="flex items-center space-x-3">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
         <div class="bg-brand text-white p-2 rounded-xl text-xl">
           <i class="fa-solid fa-store"></i>
         </div>
@@ -33,11 +33,19 @@
       </div>
 
       <div class="flex items-center space-x-3">
+        <!-- BOTÓN HOME -->
+        <button onclick="goHome()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm font-medium transition flex items-center space-x-1">
+          <i class="fa-solid fa-house text-xs"></i>
+          <span>Inicio</span>
+        </button>
+
+        <!-- CARRITO -->
         <button onclick="openCartModal()" class="relative p-2 text-gray-600 hover:text-brand transition">
           <i class="fa-solid fa-cart-shopping text-2xl"></i>
           <span id="cartCount" class="absolute -top-1 -right-1 bg-brand text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">0</span>
         </button>
 
+        <!-- ADMIN -->
         <button id="adminToggleBtn" onclick="toggleAdminModal()" class="bg-gray-900 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-gray-800 transition flex items-center space-x-1">
           <i class="fa-solid fa-lock text-xs"></i>
           <span id="adminBtnText">Acceso Admin</span>
@@ -52,9 +60,9 @@
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
-  <!-- BARRA DE BÚSQUEDA Y CONTROLES -->
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    <div class="bg-white p-4 rounded-xl shadow-sm mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
+    <!-- BARRA DE BÚSQUEDA -->
+    <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative w-full md:w-96">
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estás buscando? (Nombre o SKU)..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
@@ -66,11 +74,20 @@
       </button>
     </div>
 
+    <!-- CATEGORÍAS -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-3 mb-4 text-sm scrollbar-none">
+      <span class="font-bold text-gray-500 text-xs uppercase mr-2">Categorías:</span>
+      <button onclick="filterCategory('all')" class="cat-btn bg-brand text-white px-3 py-1.5 rounded-full font-medium shadow-sm transition whitespace-nowrap">Todos</button>
+      <button onclick="filterCategory('Cocina')" class="cat-btn bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border shadow-sm transition whitespace-nowrap">Cocina</button>
+      <button onclick="filterCategory('Baño')" class="cat-btn bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border shadow-sm transition whitespace-nowrap">Baño</button>
+      <button onclick="filterCategory('Hogar')" class="cat-btn bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border shadow-sm transition whitespace-nowrap">Hogar y Decoración</button>
+    </div>
+
     <!-- RECIPIENTE DE PRODUCTOS -->
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Sincronizando catálogo con armamipedido.mx...</p>
+        <p>Cargando catálogo...</p>
       </div>
     </div>
   </main>
@@ -116,7 +133,7 @@
       </div>
 
       <div id="adminLoginForm" class="space-y-4">
-        <input type="password" id="adminPassword" placeholder="Contraseña de Admin" class="w-full border rounded-lg p-2.5 text-sm">
+        <input type="password" id="adminPassword" placeholder="Contraseña de Admin (admin123)" class="w-full border rounded-lg p-2.5 text-sm">
         <button onclick="loginAdmin()" class="w-full bg-gray-900 text-white font-bold py-2.5 rounded-lg hover:bg-gray-800 transition">Entrar</button>
       </div>
 
@@ -143,28 +160,55 @@
     let cart = {};
     let isAdmin = false;
     let adminWhatsApp = "5215500000000";
+    let activeCategory = 'all';
 
     async function loadCatalog() {
       try {
         const res = await fetch('/api/products');
         products = await res.json();
-        filteredProducts = [...products];
+        applyFilters();
       } catch (e) {
         console.error("Error cargando productos");
       }
-      renderProducts();
+    }
+
+    function goHome() {
+      document.getElementById('searchInput').value = '';
+      activeCategory = 'all';
+      updateCategoryButtons();
+      applyFilters();
+    }
+
+    function filterCategory(cat) {
+      activeCategory = cat;
+      updateCategoryButtons();
+      applyFilters();
+    }
+
+    function updateCategoryButtons() {
+      const buttons = document.querySelectorAll('.cat-btn');
+      buttons.forEach(btn => {
+        if ((activeCategory === 'all' && btn.innerText === 'Todos') || btn.innerText === activeCategory) {
+          btn.className = "cat-btn bg-brand text-white px-3 py-1.5 rounded-full font-medium shadow-sm transition whitespace-nowrap";
+        } else {
+          btn.className = "cat-btn bg-white hover:bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium border shadow-sm transition whitespace-nowrap";
+        }
+      });
     }
 
     function filterProducts() {
+      applyFilters();
+    }
+
+    function applyFilters() {
       const query = document.getElementById('searchInput').value.toLowerCase().trim();
-      if (!query) {
-        filteredProducts = [...products];
-      } else {
-        filteredProducts = products.filter(p => 
-          p.title.toLowerCase().includes(query) || 
-          p.sku.toLowerCase().includes(query)
-        );
-      }
+      
+      filteredProducts = products.filter(p => {
+        const matchesQuery = !query || p.title.toLowerCase().includes(query) || p.sku.toLowerCase().includes(query);
+        const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
+        return matchesQuery && matchesCategory;
+      });
+
       renderProducts();
     }
 
@@ -176,7 +220,7 @@
         grid.innerHTML = `
           <div class="col-span-full text-center py-12 text-gray-400">
             <i class="fa-solid fa-magnifying-glass text-3xl mb-2"></i>
-            <p>No se encontraron productos que coincidan con la búsqueda.</p>
+            <p>No se encontraron productos en esta sección.</p>
           </div>
         `;
         return;
