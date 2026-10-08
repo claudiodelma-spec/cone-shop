@@ -1,7 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
-const cheerio = require('cheerio');
 const path = require('path');
 
 const app = express();
@@ -11,55 +9,20 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-app.get('/api/products', async (req, res) => {
-  try {
-    const response = await axios.get('https://armamipedido.mx/cone-shop', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    });
+// Productos extraídos del catálogo de Cone Shop
+const initialProducts = [
+  { sku: "53531", title: "Recipiente Hermético Transparente 900 ml", costPrice: 28, sellPrice: 36, image: "https://armamipedido.mx/cdn/shop/files/53531.jpg", available: true },
+  { sku: "50477", title: "Tapete Antideslizante de Baño 40 x 60 cm", costPrice: 69, sellPrice: 89, image: "https://armamipedido.mx/cdn/shop/files/50477.jpg", available: true },
+  { sku: "53530", title: "Recipiente Hermético Transparente 700 ml", costPrice: 29, sellPrice: 38, image: "https://armamipedido.mx/cdn/shop/files/53530.jpg", available: true },
+  { sku: "47664", title: "Delantal de Cocina Verde", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47664.jpg", available: true },
+  { sku: "47663", title: "Delantal de Cocina Rojo", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47663.jpg", available: true },
+  { sku: "51457", title: "Set de Utensilios de Cocina de Silicón con Mango de Madera", costPrice: 170, sellPrice: 220, image: "https://armamipedido.mx/cdn/shop/files/51457.jpg", available: true },
+  { sku: "53709", title: "Aromatizante con Varillas (Lavanda)", costPrice: 45, sellPrice: 60, image: "https://armamipedido.mx/cdn/shop/files/53709.jpg", available: true },
+  { sku: "47738", title: "Termómetro Digital", costPrice: 33, sellPrice: 45, image: "https://armamipedido.mx/cdn/shop/files/47738.jpg", available: true }
+];
 
-    const $ = cheerio.load(response.data);
-    const scrapedProducts = [];
-
-    $('.product-card, [class*="product"]').each((index, element) => {
-      const title = $(element).find('h3, .title, [class*="title"]').text().trim();
-      const rawPrice = $(element).find('.price, [class*="price"]').text().replace(/[^0-9.]/g, '');
-      const costPrice = parseFloat(rawPrice) || 0;
-      const img = $(element).find('img').attr('src') \vert{}\vert{}$(element).find('img').attr('data-src') || '';
-      const skuText = $(element).find('[class*="sku"]').text().replace(/[^0-9]/g, '');
-
-      if (title && costPrice > 0) {
-        scrapedProducts.push({
-          sku: skuText || `SKU-${index + 100}`,
-          title: title,
-          costPrice: costPrice,
-          sellPrice: costPrice * 1.30,
-          image: img.startsWith('//') ? 'https:' + img : img,
-          available: true
-        });
-      }
-    });
-
-    if (scrapedProducts.length > 0) {
-      res.json(scrapedProducts);
-    } else {
-      res.json([
-        { sku: "53531", title: "Recipiente Hermético Transparente 900 ml", costPrice: 28, sellPrice: 36, image: "https://armamipedido.mx/cdn/shop/files/53531.jpg", available: true },
-        { sku: "50477", title: "Tapete Antideslizante de Baño 40 x 60 cm", costPrice: 69, sellPrice: 89, image: "https://armamipedido.mx/cdn/shop/files/50477.jpg", available: true },
-        { sku: "53530", title: "Recipiente Hermético Transparente 700 ml", costPrice: 29, sellPrice: 38, image: "https://armamipedido.mx/cdn/shop/files/53530.jpg", available: true },
-        { sku: "47664", title: "Delantal de Cocina Verde", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47664.jpg", available: true }
-      ]);
-    }
-  } catch (error) {
-    console.error('Error en scraping:', error.message);
-    res.json([
-      { sku: "53531", title: "Recipiente Hermético Transparente 900 ml", costPrice: 28, sellPrice: 36, image: "https://armamipedido.mx/cdn/shop/files/53531.jpg", available: true },
-      { sku: "50477", title: "Tapete Antideslizante de Baño 40 x 60 cm", costPrice: 69, sellPrice: 89, image: "https://armamipedido.mx/cdn/shop/files/50477.jpg", available: true },
-      { sku: "53530", title: "Recipiente Hermético Transparente 700 ml", costPrice: 29, sellPrice: 38, image: "https://armamipedido.mx/cdn/shop/files/53530.jpg", available: true },
-      { sku: "47664", title: "Delantal de Cocina Verde", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47664.jpg", available: true }
-    ]);
-  }
+app.get('/api/products', (req, res) => {
+  res.json(initialProducts);
 });
 
 app.get('*', (req, res) => {
@@ -67,5 +30,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor activo en el puerto ${PORT}`);
+  console.log(`Servidor activo y listo en el puerto ${PORT}`);
 });
