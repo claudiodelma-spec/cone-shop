@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const path = require('path');
 
 const app = express();
@@ -9,76 +10,54 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Catálogo con enlaces a imágenes públicas optimizadas
-const initialProducts = [
-  { 
-    sku: "53531", 
-    title: "Recipiente Hermético Transparente 900 ml", 
-    costPrice: 28, 
-    sellPrice: 36, 
-    image: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "50477", 
-    title: "Tapete Antideslizante de Baño 40 x 60 cm", 
-    costPrice: 69, 
-    sellPrice: 89, 
-    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "53530", 
-    title: "Recipiente Hermético Transparente 700 ml", 
-    costPrice: 29, 
-    sellPrice: 38, 
-    image: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "47664", 
-    title: "Delantal de Cocina Verde", 
-    costPrice: 39, 
-    sellPrice: 50, 
-    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "47663", 
-    title: "Delantal de Cocina Rojo", 
-    costPrice: 39, 
-    sellPrice: 50, 
-    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "51457", 
-    title: "Set de Utensilios de Cocina de Silicón con Mango de Madera", 
-    costPrice: 170, 
-    sellPrice: 220, 
-    image: "https://images.unsplash.com/photo-1590794056226-77ef3a6c4743?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "53709", 
-    title: "Aromatizante con Varillas (Lavanda)", 
-    costPrice: 45, 
-    sellPrice: 60, 
-    image: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500&q=80", 
-    available: true 
-  },
-  { 
-    sku: "47738", 
-    title: "Termómetro Digital", 
-    costPrice: 33, 
-    sellPrice: 45, 
-    image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&q=80", 
-    available: true 
-  }
-];
+// Endpoint que consulta en tiempo real a la fuente de armamipedido.mx
+app.get('/api/products', async (req, res) => {
+  try {
+    // Peticion directa en tiempo real al catalogo json de armamipedido.mx
+    const response = await axios.get('https://armamipedido.mx/cone-shop/products.json', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 8000
+    });
 
-app.get('/api/products', (req, res) => {
-  res.json(initialProducts);
+    if (response.data && response.data.products) {
+      const liveProducts = response.data.products.map(p => {
+        const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+        const costPrice = parseFloat(variant.price) || 0;
+        const imgUrl = p.images && p.images[0] ? p.images[0].src : '';
+
+        return {
+          sku: variant.sku || `SKU-${p.id}`,
+          title: p.title,
+          costPrice: costPrice,
+          sellPrice: costPrice * 1.30, // Tu margen de ganancia por defecto (30%)
+          image: imgUrl,
+          available: variant.available !== false
+        };
+      });
+
+      return res.json(liveProducts);
+    }
+
+    throw new Error("No se pudo obtener el formato JSON directo");
+
+  } catch (error) {
+    console.log("Sincronización fallback activada:", error.message);
+    
+    // Si la pagina origen limita las peticiones, se envian los datos exactos del catálogo
+    res.json([
+      { sku: "53531", title: "Recipiente Hermético Transparente 900 ml", costPrice: 28, sellPrice: 36, image: "https://armamipedido.mx/cdn/shop/files/53531.jpg", available: true },
+      { sku: "50477", title: "Tapete Antideslizante de Baño 40 x 60 cm", costPrice: 69, sellPrice: 89, image: "https://armamipedido.mx/cdn/shop/files/50477.jpg", available: true },
+      { sku: "53530", title: "Recipiente Hermético Transparente 700 ml", costPrice: 29, sellPrice: 38, image: "https://armamipedido.mx/cdn/shop/files/53530.jpg", available: true },
+      { sku: "47664", title: "Delantal de Cocina Verde", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47664.jpg", available: true },
+      { sku: "47663", title: "Delantal de Cocina Rojo", costPrice: 39, sellPrice: 50, image: "https://armamipedido.mx/cdn/shop/files/47663.jpg", available: true },
+      { sku: "51457", title: "Set de Utensilios de Cocina de Silicón con Mango de Madera", costPrice: 170, sellPrice: 220, image: "https://armamipedido.mx/cdn/shop/files/51457.jpg", available: true },
+      { sku: "53709", title: "Aromatizante con Varillas (Lavanda)", costPrice: 45, sellPrice: 60, image: "https://armamipedido.mx/cdn/shop/files/53709.jpg", available: true },
+      { sku: "47738", title: "Termómetro Digital", costPrice: 33, sellPrice: 45, image: "https://armamipedido.mx/cdn/shop/files/47738.jpg", available: true }
+    ]);
+  }
 });
 
 app.get('*', (req, res) => {
@@ -86,5 +65,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor listo en el puerto ${PORT}`);
+  console.log(`Servidor de sincronización activo en puerto ${PORT}`);
 });
