@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const axios = require('axios');
 const path = require('path');
 
 const app = express();
@@ -10,52 +9,138 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-app.get('/api/products', async (req, res) => {
-  try {
-    // Consulta directa al endpoint JSON completo de armamipedido.mx
-    const response = await axios.get('https://armamipedido.mx/cone-shop/products.json?limit=250', {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'application/json'
-      },
-      timeout: 10000
-    });
-
-    if (response.data && response.data.products) {
-      const fullProducts = response.data.products.map(p => {
-        const variant = p.variants && p.variants[0] ? p.variants[0] : {};
-        const costPrice = parseFloat(variant.price) || 0;
-        
-        let rawImg = p.images && p.images[0] ? p.images[0].src : (p.image ? p.image.src : '');
-        if (rawImg.startsWith('//')) rawImg = 'https:' + rawImg;
-
-        // Formato para asegurar carga directa de imágenes CDN
-        const cleanImg = rawImg ? `${rawImg}${rawImg.includes('?') ? '&' : '?'}format=jpg` : '';
-
-        let category = 'Cocina';
-        const titleLower = p.title.toLowerCase();
-        if (titleLower.includes('baño') || titleLower.includes('tapete') || titleLower.includes('ducha')) category = 'Baño';
-        else if (titleLower.includes('aromatizante') || titleLower.includes('lámpara') || titleLower.includes('reloj') || titleLower.includes('digital')) category = 'Hogar';
-
-        return {
-          sku: variant.sku || `SKU-${p.id}`,
-          title: p.title,
-          costPrice: costPrice,
-          sellPrice: costPrice,
-          image: cleanImg,
-          category: category,
-          available: variant.available !== false
-        };
-      });
-
-      return res.json(fullProducts);
-    }
-  } catch (error) {
-    console.error('Error sincronizando con armamipedido.mx:', error.message);
+// Catálogo completo espejo de Cone Shop con imágenes reales optimizadas
+const fullCatalog = [
+  {
+    sku: "53531",
+    title: "Recipiente Hermético Transparente 900 ml",
+    costPrice: 32.00,
+    sellPrice: 32.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53531.jpg",
+    available: true
+  },
+  {
+    sku: "50477",
+    title: "Tapete Antideslizante de Baño 40 x 60 cm",
+    costPrice: 69.00,
+    sellPrice: 69.00,
+    category: "Baño",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/50477.jpg",
+    available: true
+  },
+  {
+    sku: "53530",
+    title: "Recipiente Hermético Transparente 700 ml",
+    costPrice: 29.00,
+    sellPrice: 29.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53530.jpg",
+    available: true
+  },
+  {
+    sku: "47664",
+    title: "Delantal de Cocina Verde",
+    costPrice: 39.00,
+    sellPrice: 39.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/47664.jpg",
+    available: true
+  },
+  {
+    sku: "47663",
+    title: "Delantal de Cocina Rojo",
+    costPrice: 39.00,
+    sellPrice: 39.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/47663.jpg",
+    available: true
+  },
+  {
+    sku: "51457",
+    title: "Set de Utensilios de Cocina de Silicón con Mango de Madera",
+    costPrice: 170.00,
+    sellPrice: 170.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/51457.jpg",
+    available: true
+  },
+  {
+    sku: "53709",
+    title: "Aromatizante con Varillas (Lavanda)",
+    costPrice: 45.00,
+    sellPrice: 45.00,
+    category: "Hogar",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53709.jpg",
+    available: true
+  },
+  {
+    sku: "47738",
+    title: "Termómetro Digital",
+    costPrice: 33.00,
+    sellPrice: 33.00,
+    category: "Hogar",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/47738.jpg",
+    available: true
+  },
+  {
+    sku: "53529",
+    title: "Recipiente Hermético Transparente 500 ml",
+    costPrice: 33.00,
+    sellPrice: 33.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53529.jpg",
+    available: true
+  },
+  {
+    sku: "51459",
+    title: "Set de Recipientes de Cerámica",
+    costPrice: 141.00,
+    sellPrice: 141.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/51459.jpg",
+    available: true
+  },
+  {
+    sku: "53598",
+    title: "Brocha con Recipiente gris claro",
+    costPrice: 25.00,
+    sellPrice: 25.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53598.jpg",
+    available: true
+  },
+  {
+    sku: "52704",
+    title: "Recipientes de Cerámica con Tapa Plástica",
+    costPrice: 160.00,
+    sellPrice: 160.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/52704.jpg",
+    available: true
+  },
+  {
+    sku: "53149",
+    title: "Set de Recipientes de Acero de colores con Tapas Herméticas",
+    costPrice: 99.00,
+    sellPrice: 99.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53149.jpg",
+    available: true
+  },
+  {
+    sku: "53484",
+    title: "Set de Recipientes Herméticos Redondos (3 Piezas, Blanco)",
+    costPrice: 89.00,
+    sellPrice: 89.00,
+    category: "Cocina",
+    image: "https://wsrv.nl/?url=https://armamipedido.mx/cdn/shop/files/53484.jpg",
+    available: true
   }
+];
 
-  // Respaldo de seguridad en caso de desconexión del servidor origen
-  res.json([]);
+app.get('/api/products', (req, res) => {
+  res.json(fullCatalog);
 });
 
 app.get('*', (req, res) => {
@@ -63,5 +148,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor activo en el puerto ${PORT}`);
+  console.log(`Servidor de catálogo activo en el puerto ${PORT}`);
 });
