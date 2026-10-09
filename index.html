@@ -28,7 +28,7 @@
         </div>
         <div>
           <h1 class="font-bold text-lg leading-tight text-gray-900">Mi Tienda Online</h1>
-          <p class="text-xs text-gray-500">Catálogo Espejo (Actualización 2 veces/día)</p>
+          <p class="text-xs text-gray-500">Catálogo Espejo</p>
         </div>
       </div>
 
@@ -48,7 +48,7 @@
 
   <!-- BANNER ADMIN -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Márgenes de ganancia editables.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Configuración de margen de ganancia habilitada.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
@@ -61,13 +61,10 @@
       </div>
 
       <div class="flex items-center space-x-3">
-        <div class="text-right text-xs text-gray-500">
-          <div><span id="productTotalCount" class="font-bold text-brand">0</span> productos</div>
-          <div id="syncStatusText" class="text-[10px]">Cargando...</div>
-        </div>
-        <button onclick="forceSync()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
+        <span id="syncStatusText" class="text-xs text-gray-500 font-medium">Catálogo completo</span>
+        <button onclick="loadCatalog()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
           <i class="fa-solid fa-rotate"></i>
-          <span>Forzar Sincronización</span>
+          <span>Sincronizar Catálogo</span>
         </button>
       </div>
     </div>
@@ -85,7 +82,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Cargando catálogo completo...</p>
+        <p>Cargando productos...</p>
       </div>
     </div>
   </main>
@@ -171,25 +168,10 @@
             ...p,
             sellPrice: p.costPrice * marginMultiplier
           }));
-          
-          document.getElementById('productTotalCount').innerText = data.total || products.length;
-          if (data.lastSync) {
-            document.getElementById('syncStatusText').innerText = `Sincronizado: ${data.lastSync}`;
-          }
           applyFilters();
         }
       } catch (e) {
         console.error("Error al cargar productos desde la memoria del servidor");
-      }
-    }
-
-    async function forceSync() {
-      document.getElementById('syncStatusText').innerText = 'Sincronizando 500+ productos...';
-      try {
-        await fetch('/api/force-sync', { method: 'POST' });
-        await loadCatalog();
-      } catch (e) {
-        console.error("Error al forzar sincronización");
       }
     }
 
@@ -254,136 +236,4 @@
 
         card.innerHTML = `
           <div>
-            <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" referrerpolicy="no-referrer" class="object-contain h-full w-full" loading="lazy">
-            </div>
-            <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
-            <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
-            
-            <div class="mt-3">
-              ${isAdmin ? `
-                <div class="text-xs text-gray-400 line-through">Costo Prov: $${p.costPrice.toFixed(2)}</div>                 <div class="text-lg font-bold text-brand">$${p.sellPrice.toFixed(2)}</div>
-              ` : `
-                <span class="text-xl font-extrabold text-brand">$${p.sellPrice.toFixed(2)}</span>
-              `}
-            </div>
-          </div>
-
-          <div class="mt-4 pt-3 border-t">
-            <div class="flex items-center justify-between bg-gray-100 rounded-lg p-1 mb-2">
-              <button onclick="updateQty('${p.sku}', -1)" class="w-8 h-8 rounded-md bg-white shadow flex items-center justify-center font-bold text-gray-600">-</button>
-              <span class="font-bold text-sm px-2">${qty}</span>
-              <button onclick="updateQty('${p.sku}', 1)" class="w-8 h-8 rounded-md bg-white shadow flex items-center justify-center font-bold text-gray-600">+</button>
-            </div>
-            <button onclick="updateQty('${p.sku}', 1)" class="w-full bg-brand text-white text-sm font-bold py-2 rounded-xl hover:bg-brand-hover transition">
-              Agregar al pedido
-            </button>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
-    }
-
-    function updateQty(sku, change) {
-      cart[sku] = (cart[sku] || 0) + change;
-      if (cart[sku] <= 0) delete cart[sku];
-      document.getElementById('cartCount').innerText = Object.values(cart).reduce((a, b) => a + b, 0);
-      renderProducts();
-    }
-
-    function openCartModal() {
-      const container = document.getElementById('cartItemsContainer');
-      container.innerHTML = '';
-      let total = 0;
-
-      Object.keys(cart).forEach(sku => {
-        const p = products.find(x => x.sku === sku);
-        if (p) {
-          const itemTotal = p.sellPrice * cart[sku];
-          total += itemTotal;
-          container.innerHTML += `
-            <div class="flex justify-between items-center border-b pb-2">
-              <div>
-                <p class="font-bold text-sm text-gray-800">${p.title}</p>
-                <p class="text-xs text-gray-500">${cart[sku]} x $${p.sellPrice.toFixed(2)}</p>
-              </div>
-              <span class="font-bold text-sm text-brand">$${itemTotal.toFixed(2)}</span>
-            </div>
-          `;
-        }
-      });
-
-      document.getElementById('cartTotal').innerText = `$${total.toFixed(2)}`;
-      document.getElementById('cartModal').classList.remove('hidden');
-    }
-
-    function closeCartModal() { document.getElementById('cartModal').classList.add('hidden'); }
-
-    function sendOrderWhatsApp() {
-      const name = document.getElementById('clientName').value || 'Cliente';
-      const address = document.getElementById('clientAddress').value || 'No especificada';
-      let msg = `*NUEVO PEDIDO DE COMPRA*\n*Cliente:* ${name}\n*Dirección:* ${address}\n\n*PRODUCTOS:*\n`;
-      let total = 0;
-
-      Object.keys(cart).forEach(sku => {
-        const p = products.find(x => x.sku === sku);
-        if (p) {
-          const itemTotal = p.sellPrice * cart[sku];
-          total += itemTotal;
-          msg += `- ${cart[sku]}x ${p.title} (SKU: ${p.sku}) = $${itemTotal.toFixed(2)}\n`;
-        }
-      });
-
-      msg += `\n*TOTAL A PAGAR:* $${total.toFixed(2)}`;
-      window.open(`https://wa.me/${adminWhatsApp}?text=${encodeURIComponent(msg)}`, '_blank');
-    }
-
-    function toggleAdminModal() { document.getElementById('adminModal').classList.toggle('hidden'); }
-
-    function loginAdmin() {
-      const pass = document.getElementById('adminPassword').value;
-      if (pass === 'admin123' || pass === '1234') {
-        isAdmin = true;
-        document.getElementById('adminLoginForm').classList.add('hidden');
-        document.getElementById('adminPanelContent').classList.remove('hidden');
-        document.getElementById('adminBanner').classList.remove('hidden');
-        renderProducts();
-      } else { alert('Contraseña incorrecta'); }
-    }
-
-    function logoutAdmin() {
-      isAdmin = false;
-      document.getElementById('adminBanner').classList.add('hidden');
-      toggleAdminModal();
-      renderProducts();
-    }
-
-    function applyGlobalMargin() {
-      const margin = parseFloat(document.getElementById('globalMargin').value) || 0;
-      marginMultiplier = 1 + (margin / 100);
-      products.forEach(p => p.sellPrice = p.costPrice * marginMultiplier);
-      renderProducts();
-      alert(`Se aplicó un ${margin}% de ganancia a todos los productos.`);
-    }
-
-    function checkAdminHash() {
-      if (window.location.hash === '#admin') {
-        toggleAdminModal();
-      }
-    }
-
-    window.addEventListener('hashchange', checkAdminHash);
-
-    document.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
-        toggleAdminModal();
-      }
-    });
-
-    window.onload = () => {
-      loadCatalog();
-      checkAdminHash();
-    };
-  </script>
-</body>
-</html>
+            <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center
