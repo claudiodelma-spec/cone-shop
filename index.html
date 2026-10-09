@@ -45,14 +45,14 @@
     </div>
   </header>
 
-  <!-- BANNER ADMIN (Oculto para clientes, se activa con #admin) -->
+  <!-- BANNER ADMIN -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y margen editables.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y margen configurables.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    <!-- BARRA DE BÚSQUEDA Y CONTROLES -->
+    <!-- BARRA DE BÚSQUEDA -->
     <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative w-full md:w-96">
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estás buscando? (Nombre o SKU)..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm">
@@ -78,7 +78,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Cargando catálogo...</p>
+        <p>Cargando catálogo en tiempo real...</p>
       </div>
     </div>
   </main>
