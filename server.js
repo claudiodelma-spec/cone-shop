@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Catálogo base con URLs de CDN optimizadas para evitar bloqueos por origen
+// Catálogo base con imágenes optimizadas
 const fullCatalog = [
   {
     sku: "53531",
@@ -116,4 +116,18 @@ const fullCatalog = [
     costPrice: 160.00,
     sellPrice: 160.00,
     category: "Cocina",
-    image: "
+    image: "https://images.weserv.nl/?url=https://armamipedido.mx/cdn/shop/files/52704.jpg&w=500&output=jpg",
+    available: true
+  },
+  {
+    sku: "53149",
+    title: "Set de Recipientes de Acero de colores con Tapas Herméticas",
+    costPrice: 99.00,
+    sellPrice: 99.00,
+    category: "Cocina",
+    image: "https://images.weserv.nl/?url=https://armamipedido.mx/cdn/shop/files/53149.jpg&w=500&output=jpg",
+    available: true
+  },
+  {
+    sku: "53484",
+    title: "Set de Recipientes Herméticos Redond
