@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="referrer" content="no-referrer">
   <title>Mi Tienda - Réplica Cone Shop</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -19,7 +18,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen text-gray-800 flex flex-col font-sans">
 
-  <!-- ENCABEZADO (Sin botón visible de admin para clientes) -->
+  <!-- ENCABEZADO -->
   <header class="bg-white shadow-md sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
       <div class="flex items-center space-x-3 cursor-pointer" onclick="goHome()">
@@ -46,21 +45,21 @@
     </div>
   </header>
 
-  <!-- BANNER ADMIN (Solo visible cuando inicias sesión con #admin) -->
+  <!-- BANNER ADMIN (Oculto para clientes, se activa con #admin) -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo visibles solo para ti.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y margen editables.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    <!-- BARRA DE BÚSQUEDA -->
+    <!-- BARRA DE BÚSQUEDA Y CONTROLES -->
     <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative w-full md:w-96">
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estás buscando? (Nombre o SKU)..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
       </div>
 
-      <button onclick="loadFastCatalog()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
+      <button onclick="loadCatalog()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
         <i class="fa-solid fa-rotate"></i>
         <span>Sincronizar Catálogo</span>
       </button>
@@ -79,7 +78,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Cargando productos...</p>
+        <p>Cargando catálogo...</p>
       </div>
     </div>
   </main>
@@ -116,7 +115,7 @@
     </div>
   </div>
 
-  <!-- MODAL ADMIN (Oculto para clientes) -->
+  <!-- MODAL ADMIN -->
   <div id="adminModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden p-4">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
       <div class="flex justify-between items-center mb-4 border-b pb-3">
@@ -153,37 +152,15 @@
     let isAdmin = false;
     let adminWhatsApp = "5215500000000";
     let activeCategory = 'all';
-    let marginMultiplier = 1.30;
 
-    // Catálogo optimizado de Cone Shop con CDN CDN proxy bypass
-    const rawCatalog = [
-      { sku: "53531", title: "Recipiente Hermético Transparente 900 ml", costPrice: 32.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53531.jpg" },
-      { sku: "53530", title: "Recipiente Hermético Transparente 700 ml", costPrice: 29.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53530.jpg" },
-      { sku: "53529", title: "Recipiente Hermético Transparente 500 ml", costPrice: 33.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53529.jpg" },
-      { sku: "51459", title: "Set de Recipientes de Cerámica", costPrice: 141.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/51459.jpg" },
-      { sku: "53598", title: "Brocha con Recipiente gris claro", costPrice: 25.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53598.jpg" },
-      { sku: "52704", title: "Recipientes de Cerámica con Tapa Plástica", costPrice: 160.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/52704.jpg" },
-      { sku: "53149", title: "Set de Recipientes de Acero de colores con Tapas Herméticas", costPrice: 99.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53149.jpg" },
-      { sku: "53484", title: "Set de Recipientes Herméticos Redondos (3 Piezas, Blanco)", costPrice: 89.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/53484.jpg" },
-      { sku: "50477", title: "Tapete Antideslizante de Baño 40 x 60 cm", costPrice: 69.00, category: "Baño", rawImg: "https://armamipedido.mx/cdn/shop/files/50477.jpg" },
-      { sku: "47664", title: "Delantal de Cocina Verde", costPrice: 39.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/47664.jpg" },
-      { sku: "47663", title: "Delantal de Cocina Rojo", costPrice: 39.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/47663.jpg" },
-      { sku: "51457", title: "Set de Utensilios de Cocina de Silicón con Mango de Madera", costPrice: 170.00, category: "Cocina", rawImg: "https://armamipedido.mx/cdn/shop/files/51457.jpg" },
-      { sku: "53709", title: "Aromatizante con Varillas (Lavanda)", costPrice: 45.00, category: "Hogar", rawImg: "https://armamipedido.mx/cdn/shop/files/53709.jpg" },
-      { sku: "47738", title: "Termómetro Digital", costPrice: 33.00, category: "Hogar", rawImg: "https://armamipedido.mx/cdn/shop/files/47738.jpg" }
-    ];
-
-    function loadFastCatalog() {
-      products = rawCatalog.map(item => ({
-        sku: item.sku,
-        title: item.title,
-        costPrice: item.costPrice,
-        sellPrice: item.costPrice * marginMultiplier,
-        image: `https://wsrv.nl/?url=${encodeURIComponent(item.rawImg)}&w=400&output=jpg`,
-        category: item.category
-      }));
-
-      applyFilters();
+    async function loadCatalog() {
+      try {
+        const res = await fetch('/api/products');
+        products = await res.json();
+        applyFilters();
+      } catch (e) {
+        console.error("Error al cargar productos");
+      }
     }
 
     function goHome() {
@@ -248,7 +225,7 @@
         card.innerHTML = `
           <div>
             <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full" onerror="this.onerror=null; this.src='https://via.placeholder.com/300?text=Cone+Shop'">
+              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full" loading="lazy">
             </div>
             <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
             <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
@@ -353,13 +330,12 @@
 
     function applyGlobalMargin() {
       const margin = parseFloat(document.getElementById('globalMargin').value) || 0;
-      marginMultiplier = 1 + (margin / 100);
-      products.forEach(p => p.sellPrice = p.costPrice * marginMultiplier);
+      const mult = 1 + (margin / 100);
+      products.forEach(p => p.sellPrice = p.costPrice * mult);
       renderProducts();
       alert(`Se aplicó un ${margin}% de ganancia a todos los productos.`);
     }
 
-    // Detección de acceso secreto a Admin
     function checkAdminHash() {
       if (window.location.hash === '#admin') {
         toggleAdminModal();
@@ -368,7 +344,6 @@
 
     window.addEventListener('hashchange', checkAdminHash);
     
-    // Atajo de teclado secreto: Ctrl + Shift + A
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'a') {
         toggleAdminModal();
@@ -376,7 +351,7 @@
     });
 
     window.onload = () => {
-      loadFastCatalog();
+      loadCatalog();
       checkAdminHash();
     };
   </script>
