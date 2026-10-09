@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi Tienda - Réplica Cone Shop</title>
+  <title>Mi Tienda Online</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -78,7 +78,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Cargando catálogo en tiempo real...</p>
+        <p>Cargando catálogo...</p>
       </div>
     </div>
   </main>
@@ -225,7 +225,7 @@
         card.innerHTML = `
           <div>
             <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full" loading="lazy">
+              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full">
             </div>
             <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
             <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
