@@ -48,22 +48,25 @@
 
   <!-- BANNER ADMIN -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y márgenes editables.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y margen editables.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
   <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
-    <!-- BARRA DE BÚSQUEDA Y SINCRONIZACIÓN -->
+    <!-- BARRA DE BÚSQUEDA Y ESTADO DE SINCRONIZACIÓN -->
     <div class="bg-white p-4 rounded-xl shadow-sm mb-4 flex flex-col md:flex-row gap-4 items-center justify-between">
       <div class="relative w-full md:w-96">
         <input type="text" id="searchInput" oninput="filterProducts()" placeholder="¿Qué estás buscando? (Nombre o SKU)..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-600 text-sm">
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
       </div>
 
-      <button onclick="loadLiveProducts()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
-        <i class="fa-solid fa-rotate"></i>
-        <span>Sincronizar Catálogo</span>
-      </button>
+      <div class="flex items-center space-x-3">
+        <span id="syncStatusText" class="text-xs text-gray-500 font-medium">Sincroniza cada 3 hrs</span>
+        <button onclick="forceSync()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
+          <i class="fa-solid fa-rotate"></i>
+          <span>Sincronizar Ahora</span>
+        </button>
+      </div>
     </div>
 
     <!-- CATEGORÍAS -->
@@ -79,7 +82,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Sincronizando productos...</p>
+        <p>Cargando productos...</p>
       </div>
     </div>
   </main>
@@ -155,36 +158,35 @@
     let activeCategory = 'all';
     let marginMultiplier = 1.0;
 
-    async function loadLiveProducts() {
-      const grid = document.getElementById('productGrid');
-      grid.innerHTML = `
-        <div class="col-span-full text-center py-12 text-gray-500">
-          <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-          <p>Sincronizando productos y fotos reales...</p>
-        </div>
-      `;
-
+    async function loadCatalog() {
       try {
-        const res = await fetch('/api/live-products');
+        const res = await fetch('/api/products');
         const data = await res.json();
         
-        if (data.products && data.products.length > 0) {
+        if (data.products) {
           products = data.products.map(p => ({
             ...p,
             sellPrice: p.costPrice * marginMultiplier
           }));
+          
+          if (data.lastSync) {
+            document.getElementById('syncStatusText').innerText = `Última sinc: ${data.lastSync}`;
+          }
           applyFilters();
-          return;
         }
-      } catch (err) {
-        console.error("Error al cargar productos:", err);
+      } catch (e) {
+        console.error("Error al cargar productos desde la caché del servidor");
       }
+    }
 
-      grid.innerHTML = `
-        <div class="col-span-full text-center py-12 text-gray-400">
-          <p>No se pudieron cargar los productos. Intenta nuevamente.</p>
-        </div>
-      `;
+    async function forceSync() {
+      document.getElementById('syncStatusText').innerText = 'Sincronizando...';
+      try {
+        await fetch('/api/force-sync', { method: 'POST' });
+        await loadCatalog();
+      } catch (e) {
+        console.error("Error al forzar sincronización");
+      }
     }
 
     function goHome() {
@@ -249,7 +251,7 @@
         card.innerHTML = `
           <div>
             <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full" loading="lazy">
+              <img src="${p.image}" alt="${p.title}" referrerpolicy="no-referrer" class="object-contain h-full w-full" loading="lazy">
             </div>
             <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
             <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
@@ -375,7 +377,7 @@
     });
 
     window.onload = () => {
-      loadLiveProducts();
+      loadCatalog();
       checkAdminHash();
     };
   </script>
