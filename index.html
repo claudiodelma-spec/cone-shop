@@ -28,7 +28,7 @@
         </div>
         <div>
           <h1 class="font-bold text-lg leading-tight text-gray-900">Mi Tienda Online</h1>
-          <p class="text-xs text-gray-500">Catálogo Espejo en Tiempo Real</p>
+          <p class="text-xs text-gray-500">Catálogo Espejo</p>
         </div>
       </div>
 
@@ -48,7 +48,7 @@
 
   <!-- BANNER ADMIN -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Margen editable sobre precios en tiempo real.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y márgenes editables.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
@@ -60,9 +60,9 @@
         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
       </div>
 
-      <button onclick="syncLive()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
+      <button onclick="loadLiveProducts()" class="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-brand-hover transition flex items-center space-x-2">
         <i class="fa-solid fa-rotate"></i>
-        <span>Sincronizar en Vivo</span>
+        <span>Sincronizar Catálogo</span>
       </button>
     </div>
 
@@ -79,7 +79,7 @@
     <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
       <div class="col-span-full text-center py-12 text-gray-500">
         <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-        <p>Extrayendo productos reales en tiempo real desde armamipedido.mx...</p>
+        <p>Sincronizando productos...</p>
       </div>
     </div>
   </main>
@@ -153,69 +153,36 @@
     let isAdmin = false;
     let adminWhatsApp = "5215500000000";
     let activeCategory = 'all';
-    let marginMultiplier = 1.0; // Mantiene los precios exactamente iguales a los de la página origen por defecto
+    let marginMultiplier = 1.0;
 
-    async function syncLive() {
+    async function loadLiveProducts() {
       const grid = document.getElementById('productGrid');
       grid.innerHTML = `
         <div class="col-span-full text-center py-12 text-gray-500">
           <i class="fa-solid fa-spinner fa-spin text-3xl text-brand mb-3"></i>
-          <p>Extrayendo catálogo en vivo desde armamipedido.mx...</p>
+          <p>Sincronizando productos y fotos reales...</p>
         </div>
       `;
 
       try {
-        // Peticion directa a la API JSON pública a través de un cors-proxy
-        const targetUrl = 'https://armamipedido.mx/cone-shop/products.json?limit=250';
-        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(targetUrl);
+        const res = await fetch('/api/live-products');
+        const data = await res.json();
         
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-
-        if (data.contents) {
-          const parsed = JSON.parse(data.contents);
-          if (parsed.products && parsed.products.length > 0) {
-            products = parsed.products.map((p, idx) => {
-              const variant = p.variants && p.variants[0] ? p.variants[0] : {};
-              const costPrice = parseFloat(variant.price) || 0;
-              
-              let rawImg = '';
-              if (p.images && p.images[0]) rawImg = p.images[0].src;
-              else if (p.image && p.image.src) rawImg = p.image.src;
-
-              if (rawImg.startsWith('//')) rawImg = 'https:' + rawImg;
-
-              // Bypass automático de hotlinking de imágenes
-              const cleanImg = rawImg ? `https://wsrv.nl/?url=${encodeURIComponent(rawImg)}&w=500&output=jpg` : 'https://via.placeholder.com/300?text=Sin+Imagen';
-
-              let category = 'Cocina';
-              const titleLower = p.title.toLowerCase();
-              if (titleLower.includes('baño') || titleLower.includes('tapete') || titleLower.includes('ducha')) category = 'Baño';
-              else if (titleLower.includes('aromatizante') || titleLower.includes('lámpara') || titleLower.includes('foco') || titleLower.includes('digital')) category = 'Hogar';
-
-              return {
-                sku: variant.sku || `SKU-${p.id || idx + 100}`,
-                title: p.title,
-                costPrice: costPrice,
-                sellPrice: costPrice * marginMultiplier,
-                image: cleanImg,
-                category: category
-              };
-            });
-
-            applyFilters();
-            return;
-          }
+        if (data.products && data.products.length > 0) {
+          products = data.products.map(p => ({
+            ...p,
+            sellPrice: p.costPrice * marginMultiplier
+          }));
+          applyFilters();
+          return;
         }
       } catch (err) {
-        console.error("Error al sincronizar en vivo:", err);
+        console.error("Error al cargar productos:", err);
       }
 
       grid.innerHTML = `
-        <div class="col-span-full text-center py-12 text-red-500">
-          <i class="fa-solid fa-triangle-exclamation text-3xl mb-2"></i>
-          <p>No se pudo conectar con el catálogo en vivo. Intenta nuevamente.</p>
-          <button onclick="syncLive()" class="mt-3 bg-brand text-white px-4 py-2 rounded-lg text-sm">Reintentar</button>
+        <div class="col-span-full text-center py-12 text-gray-400">
+          <p>No se pudieron cargar los productos. Intenta nuevamente.</p>
         </div>
       `;
     }
@@ -408,7 +375,7 @@
     });
 
     window.onload = () => {
-      syncLive();
+      loadLiveProducts();
       checkAdminHash();
     };
   </script>
