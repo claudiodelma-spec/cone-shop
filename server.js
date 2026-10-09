@@ -148,3 +148,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
+  console.log(`Servidor activo en el puerto ${PORT}`);
+});
