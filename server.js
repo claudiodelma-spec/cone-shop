@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const path = require('path');
 
 const app = express();
@@ -9,84 +10,52 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// Catálogo con imágenes servidas desde un repositorio CDN optimizado e inmune a bloqueos
-const catalogProducts = [
-  {
-    sku: "53531",
-    title: "Recipiente Hermético Transparente 900 ml",
-    costPrice: 32.00,
-    sellPrice: 32.00,
-    category: "Cocina",
-    image: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "50477",
-    title: "Tapete Antideslizante de Baño 40 x 60 cm",
-    costPrice: 69.00,
-    sellPrice: 69.00,
-    category: "Baño",
-    image: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "53530",
-    title: "Recipiente Hermético Transparente 700 ml",
-    costPrice: 29.00,
-    sellPrice: 29.00,
-    category: "Cocina",
-    image: "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "47664",
-    title: "Delantal de Cocina Verde",
-    costPrice: 39.00,
-    sellPrice: 39.00,
-    category: "Cocina",
-    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "47663",
-    title: "Delantal de Cocina Rojo",
-    costPrice: 39.00,
-    sellPrice: 39.00,
-    category: "Cocina",
-    image: "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "51457",
-    title: "Set de Utensilios de Cocina de Silicón con Mango de Madera",
-    costPrice: 170.00,
-    sellPrice: 170.00,
-    category: "Cocina",
-    image: "https://images.unsplash.com/photo-1590794056226-77ef3a6c4743?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "53709",
-    title: "Aromatizante con Varillas (Lavanda)",
-    costPrice: 45.00,
-    sellPrice: 45.00,
-    category: "Hogar",
-    image: "https://images.unsplash.com/photo-1608571423902-eed4a5ad8108?w=500&auto=format&fit=crop&q=80",
-    available: true
-  },
-  {
-    sku: "47738",
-    title: "Termómetro Digital",
-    costPrice: 33.00,
-    sellPrice: 33.00,
-    category: "Hogar",
-    image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500&auto=format&fit=crop&q=80",
-    available: true
-  }
-];
+app.get('/api/products', async (req, res) => {
+  try {
+    // Consulta directa al endpoint JSON completo de armamipedido.mx
+    const response = await axios.get('https://armamipedido.mx/cone-shop/products.json?limit=250', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json'
+      },
+      timeout: 10000
+    });
 
-app.get('/api/products', (req, res) => {
-  res.json(catalogProducts);
+    if (response.data && response.data.products) {
+      const fullProducts = response.data.products.map(p => {
+        const variant = p.variants && p.variants[0] ? p.variants[0] : {};
+        const costPrice = parseFloat(variant.price) || 0;
+        
+        let rawImg = p.images && p.images[0] ? p.images[0].src : (p.image ? p.image.src : '');
+        if (rawImg.startsWith('//')) rawImg = 'https:' + rawImg;
+
+        // Formato para asegurar carga directa de imágenes CDN
+        const cleanImg = rawImg ? `${rawImg}${rawImg.includes('?') ? '&' : '?'}format=jpg` : '';
+
+        let category = 'Cocina';
+        const titleLower = p.title.toLowerCase();
+        if (titleLower.includes('baño') || titleLower.includes('tapete') || titleLower.includes('ducha')) category = 'Baño';
+        else if (titleLower.includes('aromatizante') || titleLower.includes('lámpara') || titleLower.includes('reloj') || titleLower.includes('digital')) category = 'Hogar';
+
+        return {
+          sku: variant.sku || `SKU-${p.id}`,
+          title: p.title,
+          costPrice: costPrice,
+          sellPrice: costPrice,
+          image: cleanImg,
+          category: category,
+          available: variant.available !== false
+        };
+      });
+
+      return res.json(fullProducts);
+    }
+  } catch (error) {
+    console.error('Error sincronizando con armamipedido.mx:', error.message);
+  }
+
+  // Respaldo de seguridad en caso de desconexión del servidor origen
+  res.json([]);
 });
 
 app.get('*', (req, res) => {
@@ -94,5 +63,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor de catálogo activo en el puerto ${PORT}`);
+  console.log(`Servidor activo en el puerto ${PORT}`);
 });
