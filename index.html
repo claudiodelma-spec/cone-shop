@@ -45,9 +45,9 @@
     </div>
   </header>
 
-  <!-- BANNER ADMIN -->
+  <!-- BANNER ADMIN (Oculto para clientes, accesible por #admin o Ctrl+Shift+A) -->
   <div id="adminBanner" class="hidden bg-amber-500 text-slate-900 font-semibold px-4 py-2 text-center text-sm shadow-inner flex justify-between items-center max-w-7xl mx-auto w-full">
-    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Precios de costo y margen configurables.</span>
+    <span><i class="fa-solid fa-shield-halved mr-2"></i> MODO ADMINISTRADOR ACTIVO — Configuración de margen de ganancia habilitada.</span>
     <button onclick="logoutAdmin()" class="bg-slate-900 text-white text-xs px-2.5 py-1 rounded hover:bg-slate-800">Cerrar Sesión</button>
   </div>
 
@@ -225,7 +225,7 @@
         card.innerHTML = `
           <div>
             <div class="w-full h-48 bg-gray-50 rounded-xl overflow-hidden mb-3 flex items-center justify-center p-2">
-              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full" loading="lazy">
+              <img src="${p.image}" alt="${p.title}" class="object-contain h-full w-full">
             </div>
             <span class="text-xs text-gray-400 font-mono">SKU: ${p.sku}</span>
             <h3 class="font-bold text-gray-800 text-sm mt-1 leading-snug">${p.title}</h3>
